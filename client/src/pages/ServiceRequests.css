@@ -1,0 +1,49 @@
+.requests-page {
+  padding: 40px 0;
+  min-height: calc(100vh - 80px);
+}
+
+.requests-page h1 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #1f2937;
+}
+
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.request-card {
+  padding: 20px;
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.request-header h3 {
+  font-size: 20px;
+  color: #1f2937;
+}
+
+.request-description {
+  color: #4b5563;
+  margin-bottom: 15px;
+  line-height: 1.6;
+}
+
+.request-info {
+  padding-top: 15px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.request-info p {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}

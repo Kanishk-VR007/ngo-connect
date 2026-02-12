@@ -1,0 +1,43 @@
+.google-map-container {
+  width: 100%;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.google-map-container > div {
+  border: 1px solid #e5e7eb;
+}
+
+/* Info window styling overrides */
+.gm-style .gm-style-iw-c {
+  border-radius: 8px !important;
+  padding: 0 !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: auto !important;
+  max-width: 300px !important;
+}
+
+.gm-style .gm-style-iw-t::after {
+  background: white !important;
+}
+
+/* Map controls */
+.gm-bundled-control {
+  margin: 10px !important;
+}
+
+/* Marker animation */
+@keyframes markerDrop {
+  0% {
+    transform: translateY(-200px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

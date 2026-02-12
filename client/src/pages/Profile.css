@@ -1,0 +1,20 @@
+.profile-page {
+  padding: 40px 0;
+  min-height: calc(100vh - 80px);
+}
+
+.profile-page h1 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #1f2937;
+}
+
+.account-info {
+  margin-top: 20px;
+}
+
+.account-info p {
+  margin-bottom: 12px;
+  font-size: 16px;
+  color: #4b5563;
+}

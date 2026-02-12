@@ -1,0 +1,31 @@
+{
+  "name": "ngo-connect",
+  "version": "1.0.0",
+  "description": "NGO Connect - A platform connecting NGOs with people seeking assistance",
+  "main": "server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "client": "npm start --prefix client",
+    "dev:all": "concurrently \"npm run dev\" \"npm run client\""
+  },
+  "keywords": ["ngo", "social-welfare", "connect", "platform"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "bcryptjs": "^2.4.3",
+    "mongoose": "^8.0.3",
+    "express-validator": "^7.0.1",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.6.1",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "concurrently": "^8.2.2"
+  }
+}

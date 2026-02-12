@@ -1,0 +1,10 @@
+.chat-page {
+  padding: 40px 0;
+  min-height: calc(100vh - 80px);
+}
+
+.chat-page h1 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #1f2937;
+}

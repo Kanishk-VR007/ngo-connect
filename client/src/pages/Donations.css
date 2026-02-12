@@ -1,0 +1,43 @@
+.donations-page {
+  padding: 40px 0;
+  min-height: calc(100vh - 80px);
+}
+
+.donations-page h1 {
+  font-size: 32px;
+  margin-bottom: 30px;
+  color: #1f2937;
+}
+
+.donations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.donation-card {
+  padding: 20px;
+}
+
+.donation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.donation-header h3 {
+  font-size: 24px;
+  color: #10b981;
+}
+
+.donation-info {
+  padding-top: 15px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.donation-info p {
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #6b7280;
+}
