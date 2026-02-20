@@ -16,6 +16,25 @@ const ngoSchema = new mongoose.Schema({
     required: [true, 'Please provide registration number'],
     unique: true
   },
+  founderId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: [true, 'NGO must have a founder']
+  },
+  ngoType: {
+    type: String,
+    enum: [
+      'Charitable',
+      'Service',
+      'Participatory',
+      'Empowerment',
+      'Advocacy',
+      'Community-based',
+      'Faith-based',
+      'Other'
+    ],
+    default: 'Service'
+  },
   email: {
     type: String,
     required: [true, 'Please provide email'],
@@ -92,14 +111,48 @@ const ngoSchema = new mongoose.Schema({
   members: [{
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'User',
+      required: true
     },
     role: {
       type: String,
-      enum: ['admin', 'manager', 'member'],
+      enum: ['founder', 'admin', 'member'],
       default: 'member'
     },
+    permissions: {
+      canManageMembers: {
+        type: Boolean,
+        default: false
+      },
+      canEditNGOInfo: {
+        type: Boolean,
+        default: false
+      },
+      canCreateEvents: {
+        type: Boolean,
+        default: true
+      },
+      canManageCollaborations: {
+        type: Boolean,
+        default: false
+      }
+    },
     joinedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  collaborations: [{
+    ngoId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'NGO'
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'active', 'ended'],
+      default: 'active'
+    },
+    startedAt: {
       type: Date,
       default: Date.now
     }

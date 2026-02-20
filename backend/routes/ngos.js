@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ngoController = require('../controllers/ngoController');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
 
 // @route   GET /api/ngos
@@ -10,9 +10,14 @@ const authorize = require('../middleware/authorize');
 router.get('/', ngoController.getNGOs);
 
 // @route   GET /api/ngos/nearby
-// @desc    Get nearby NGOs based on location
+// @desc    Get nearby NGOs based on lat/lng coordinates
 // @access  Public
 router.get('/nearby', ngoController.getNearbyNGOs);
+
+// @route   GET /api/ngos/by-address
+// @desc    Search NGOs by address string + radius (geocodes via Nominatim)
+// @access  Public
+router.get('/by-address', ngoController.getByAddress);
 
 // @route   GET /api/ngos/search
 // @desc    Search NGOs by name, description, or service

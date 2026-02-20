@@ -1,11 +1,58 @@
 const NGO = require('../models/NGO');
 const NGOApplication = require('../models/NGOApplication');
 const User = require('../models/User');
+const https = require('https');
+
+// Helper: Handle database errors
+const handleDBError = (error, res, operation = 'operation') => {
+  console.error(`Database error during ${operation}:`, error.message);
+  
+  if (error.message.includes('connect') || error.name === 'MongoServerError' || error.message.includes('ENOTFOUND')) {
+    return res.status(503).json({
+      success: false,
+      error: 'Database service unavailable. Please try again later.',
+      retryAfter: 30
+    });
+  }
+  
+  return res.status(500).json({
+    success: false,
+    error: `Server error during ${operation}`
+  });
+};
+
+// Helper: Geocode an address string → { lat, lng } using Nominatim (free, no key)
+const geocodeAddress = (address) => {
+  return new Promise((resolve, reject) => {
+    const encoded = encodeURIComponent(address);
+    const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=1&countrycodes=in`;
+    const options = {
+      headers: { 'User-Agent': 'NGOConnectApp/1.0 (ngoconnect@example.com)' }
+    };
+    https.get(url, options, (res) => {
+      let data = '';
+      res.on('data', chunk => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const results = JSON.parse(data);
+          if (results && results.length > 0) {
+            resolve({ lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) });
+          } else {
+            reject(new Error('Address not found'));
+          }
+        } catch (e) { reject(e); }
+      });
+    }).on('error', reject);
+  });
+};
 
 // @desc    Get all NGOs with filters
 exports.getNGOs = async (req, res) => {
   try {
-    const { category, city, state, verified, page = 1, limit = 10 } = req.query;
+    const { category, city, state, verified, search, page = 1, limit = 20 } = req.query;
+
+    // Cap limit at 200 to prevent abuse but allow map view to fetch all
+    const effectiveLimit = Math.min(parseInt(limit) || 20, 200);
 
     const query = { isActive: true };
 
@@ -21,25 +68,32 @@ exports.getNGOs = async (req, res) => {
     if (verified !== undefined) {
       query.isVerified = verified === 'true';
     }
+    if (search) {
+      query.name = new RegExp(search, 'i');
+    }
 
-    const skip = (page - 1) * limit;
+    const skip = (page - 1) * effectiveLimit;
 
-    const ngos = await NGO.find(query)
-      .select('-members -activities -achievements')
-      .limit(parseInt(limit))
-      .skip(skip)
-      .sort({ 'rating.average': -1, createdAt: -1 });
+    try {
+      const ngos = await NGO.find(query)
+        .select('-members -activities -achievements')
+        .limit(effectiveLimit)
+        .skip(skip)
+        .sort({ 'rating.average': -1, createdAt: -1 });
 
-    const total = await NGO.countDocuments(query);
+      const total = await NGO.countDocuments(query);
 
-    res.json({
-      success: true,
-      count: ngos.length,
-      total,
-      page: parseInt(page),
-      pages: Math.ceil(total / limit),
-      data: ngos
-    });
+      res.json({
+        success: true,
+        count: ngos.length,
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / effectiveLimit),
+        data: ngos
+      });
+    } catch (dbError) {
+      return handleDBError(dbError, res, 'fetching NGOs');
+    }
   } catch (error) {
     console.error('Get NGOs error:', error);
     res.status(500).json({
@@ -49,15 +103,24 @@ exports.getNGOs = async (req, res) => {
   }
 };
 
-// @desc    Get nearby NGOs
+
+// @desc    Get nearby NGOs by coordinates
 exports.getNearbyNGOs = async (req, res) => {
   try {
-    const { latitude, longitude, maxDistance = 10000, category } = req.query;
+    // Accept both lat/lng (from NGOList.js) and latitude/longitude
+    const lat = req.query.lat || req.query.latitude;
+    const lng = req.query.lng || req.query.longitude;
+    // Accept 'distance' in km OR 'maxDistance' in meters
+    const distanceKm = req.query.distance ? parseFloat(req.query.distance) : null;
+    const maxDistanceMeters = distanceKm
+      ? distanceKm * 1000
+      : parseInt(req.query.maxDistance) || 50000; // default 50 km
+    const { category } = req.query;
 
-    if (!latitude || !longitude) {
+    if (!lat || !lng) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide latitude and longitude'
+        error: 'Please provide lat and lng'
       });
     }
 
@@ -67,32 +130,79 @@ exports.getNearbyNGOs = async (req, res) => {
         $near: {
           $geometry: {
             type: 'Point',
-            coordinates: [parseFloat(longitude), parseFloat(latitude)]
+            coordinates: [parseFloat(lng), parseFloat(lat)]
           },
-          $maxDistance: parseInt(maxDistance)
+          $maxDistance: maxDistanceMeters
         }
       }
     };
 
-    if (category) {
-      query.serviceCategories = category;
+    if (category) query.serviceCategories = category;
+
+    try {
+      const ngos = await NGO.find(query)
+        .select('-members -activities -achievements')
+        .limit(100);
+
+      res.json({ success: true, count: ngos.length, data: ngos });
+    } catch (dbError) {
+      return handleDBError(dbError, res, 'fetching nearby NGOs');
     }
+  } catch (error) {
+    console.error('Get nearby NGOs error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+
+// @desc    Search NGOs by address string + radius (geocodes address via Nominatim)
+exports.getByAddress = async (req, res) => {
+  try {
+    const { address, radius = 50, category } = req.query;
+
+    if (!address) {
+      return res.status(400).json({ success: false, error: 'Please provide an address' });
+    }
+
+    // Geocode the address
+    let coords;
+    try {
+      coords = await geocodeAddress(address);
+    } catch (geoErr) {
+      return res.status(400).json({ success: false, error: `Could not geocode address: ${geoErr.message}` });
+    }
+
+    const radiusMeters = parseFloat(radius) * 1000; // km → meters
+
+    const query = {
+      isActive: true,
+      'location.coordinates': {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [coords.lng, coords.lat]
+          },
+          $maxDistance: radiusMeters
+        }
+      }
+    };
+
+    if (category) query.serviceCategories = category;
 
     const ngos = await NGO.find(query)
       .select('-members -activities -achievements')
-      .limit(20);
+      .limit(50);
 
     res.json({
       success: true,
       count: ngos.length,
+      searchCenter: { lat: coords.lat, lng: coords.lng, address },
+      radius: parseFloat(radius),
       data: ngos
     });
   } catch (error) {
-    console.error('Get nearby NGOs error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    console.error('Get by address error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 
@@ -166,7 +276,7 @@ exports.createNGO = async (req, res) => {
     });
   } catch (error) {
     console.error('Create NGO error:', error);
-    
+
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,

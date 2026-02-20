@@ -39,10 +39,34 @@ const NGOList = () => {
 
   const fetchNGOs = async () => {
     try {
+      setLoading(true);
+      let url = 'http://localhost:5000/api/ngos';
+      
+      // Use nearby endpoint if distance filter and user location are available
+      if (filters.distance && userLocation) {
+        url = `http://localhost:5000/api/ngos/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&distance=${filters.distance}`;
+      }
+      
       const params = {};
       if (filters.category) params.category = filters.category;
       if (filters.search) params.search = filters.search;
       
+      const response = await axios.get(url, { params });
+      setNgos(response.data);
+    } catch (error) {
+      console.error('Error fetching NGOs:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilterChange = (e) => {
+    setFilters({
+      ...filters,
+      [e.target.name]: e.target.value
+    });
+  };
+
   const handleMarkerClick = (ngoId) => {
     navigate(`/ngos/${ngoId}`);
   };
@@ -89,15 +113,15 @@ const NGOList = () => {
               <label>Category</label>
               <select name="category" value={filters.category} onChange={handleFilterChange}>
                 <option value="">All Categories</option>
-                <option value="education">Education</option>
-                <option value="healthcare">Healthcare</option>
-                <option value="food security">Food & Nutrition</option>
-                <option value="shelter">Shelter</option>
-                <option value="women empowerment">Women Empowerment</option>
-                <option value="child welfare">Child Welfare</option>
-                <option value="environment">Environmental</option>
-                <option value="disaster relief">Disaster Relief</option>
-                <option value="skill development">Skill Development</option>
+                <option value="Education">Education</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Food & Nutrition">Food & Nutrition</option>
+                <option value="Shelter">Shelter</option>
+                <option value="Women Empowerment">Women Empowerment</option>
+                <option value="Child Welfare">Child Welfare</option>
+                <option value="Environmental">Environmental</option>
+                <option value="Disaster Relief">Disaster Relief</option>
+                <option value="Skill Development">Skill Development</option>
               </select>
             </div>
 
@@ -151,9 +175,11 @@ const NGOList = () => {
                   </p>
 
                   <div className="ngo-info">
-                    <p><strong>📍 Location:</strong> {ngo.address}</p>
-                    <p><strong>📂 Categories:</strong> {ngo.categories?.join(', ') || 'N/A'}</p>
-                    <p><strong>⏱️ Experience:</strong> {ngo.yearsOfOperation || 0} years</p>
+                    <p><strong>📍 Location:</strong> {ngo.location?.city}, {ngo.location?.state}</p>
+                    <p><strong>📂 Categories:</strong> {ngo.serviceCategories?.join(', ') || 'N/A'}</p>
+                    {ngo.foundedYear && (
+                      <p><strong>⏱️ Founded:</strong> {ngo.foundedYear}</p>
+                    )}
                     {ngo.rating && (
                       <p><strong>⭐ Rating:</strong> {ngo.rating.toFixed(1)}/5</p>
                     )}

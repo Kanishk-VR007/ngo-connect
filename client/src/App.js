@@ -12,6 +12,10 @@ import ServiceRequests from './pages/ServiceRequests';
 import Donations from './pages/Donations';
 import Chat from './pages/Chat';
 import Profile from './pages/Profile';
+import EventsList from './pages/EventsList';
+import RequestEvent from './pages/RequestEvent';
+import MyEventRequests from './pages/MyEventRequests';
+import NGOMapSearch from './pages/NGOMapSearch';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -26,7 +30,8 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/ngos" element={<NGOList />} />
             <Route path="/ngos/:id" element={<NGODetail />} />
-            
+            <Route path="/ngo-map" element={<NGOMapSearch />} />
+
             {/* Protected Routes */}
             <Route path="/dashboard" element={
               <PrivateRoute>
@@ -53,7 +58,7 @@ function App() {
                 <Profile />
               </PrivateRoute>
             } />
-            
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

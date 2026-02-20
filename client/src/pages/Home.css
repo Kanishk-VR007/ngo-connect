@@ -52,6 +52,7 @@
   from {
     height: 0;
   }
+
   to {
     height: 40%;
   }
@@ -62,6 +63,7 @@
     width: 0;
     opacity: 0;
   }
+
   to {
     width: 300px;
     opacity: 1;
@@ -125,20 +127,26 @@
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
     opacity: 0;
   }
+
   10% {
     opacity: 0.6;
   }
+
   50% {
     transform: translateY(100vh) rotate(180deg);
     opacity: 0.6;
   }
+
   90% {
     opacity: 0.6;
   }
+
   100% {
     transform: translateY(110vh) rotate(360deg);
     opacity: 0;
@@ -162,9 +170,12 @@
 }
 
 @keyframes sway {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: rotate(-3deg);
   }
+
   50% {
     transform: rotate(3deg);
   }
@@ -197,6 +208,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -208,6 +220,7 @@
     opacity: 0;
     transform: translateY(30px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -228,10 +241,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
   }
+
   50% {
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(255, 255, 255, 0.5);
@@ -257,16 +273,28 @@
   animation: fadeInUp 1s ease-out backwards;
 }
 
-.stat-root:nth-child(1) { animation-delay: 0.8s; }
-.stat-root:nth-child(2) { animation-delay: 1s; }
-.stat-root:nth-child(3) { animation-delay: 1.2s; }
-.stat-root:nth-child(4) { animation-delay: 1.4s; }
+.stat-root:nth-child(1) {
+  animation-delay: 0.8s;
+}
+
+.stat-root:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.stat-root:nth-child(3) {
+  animation-delay: 1.2s;
+}
+
+.stat-root:nth-child(4) {
+  animation-delay: 1.4s;
+}
 
 @keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -439,15 +467,24 @@
   animation: stageAppear 0.8s ease-out backwards;
 }
 
-.growth-stage:nth-child(1) { animation-delay: 0.2s; }
-.growth-stage:nth-child(3) { animation-delay: 0.4s; }
-.growth-stage:nth-child(5) { animation-delay: 0.6s; }
+.growth-stage:nth-child(1) {
+  animation-delay: 0.2s;
+}
+
+.growth-stage:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.growth-stage:nth-child(5) {
+  animation-delay: 0.6s;
+}
 
 @keyframes stageAppear {
   from {
     opacity: 0;
     transform: scale(0.8);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
@@ -488,15 +525,19 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
 @keyframes bounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -629,6 +670,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-100px);
   }
@@ -836,4 +878,12 @@
   .btn-cta-secondary {
     width: 100%;
   }
+}
+
+/* ─── Nearby NGOs wrapper on Home page ─────────────────────────────────────── */
+.nearby-section-wrapper {
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 8px 0;
 }

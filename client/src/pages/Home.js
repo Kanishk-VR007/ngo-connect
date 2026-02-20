@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NearbyNGOs from '../components/NearbyNGOs';
 import './Home.css';
 
 const Home = () => {
@@ -19,7 +20,7 @@ const Home = () => {
     const interval = setInterval(() => {
       currentStep++;
       const progress = currentStep / steps;
-      
+
       setStats({
         ngos: Math.floor(targets.ngos * progress),
         helped: Math.floor(targets.helped * progress),
@@ -53,7 +54,7 @@ const Home = () => {
           <div className="tree-trunk"></div>
           <div className="tree-roots"></div>
         </div>
-        
+
         <div className="container hero-content">
           <div className="floating-leaves">
             <span className="leaf">🍃</span>
@@ -68,10 +69,10 @@ const Home = () => {
             Growing Together, Helping Each Other
           </h1>
           <p className="hero-subtitle animate-fade-in-delay">
-            Like branches of a tree reaching out, we connect communities with NGOs. 
+            Like branches of a tree reaching out, we connect communities with NGOs.
             Every contribution helps our community grow stronger.
           </p>
-          
+
           <div className="hero-actions animate-slide-up">
             {isAuthenticated ? (
               <>
@@ -124,7 +125,7 @@ const Home = () => {
             Our Branches of Support
           </h2>
           <p className="section-subtitle">Each branch represents a way we help communities grow</p>
-          
+
           <div className="branches-tree">
             {branches.map((branch, index) => (
               <Link
@@ -156,7 +157,7 @@ const Home = () => {
             Watch Your Impact Grow
           </h2>
           <p className="section-subtitle">Like planting a seed, your contribution creates lasting change</p>
-          
+
           <div className="growth-stages">
             <div className="growth-stage">
               <div className="stage-icon seed-stage">🌰</div>
@@ -165,9 +166,9 @@ const Home = () => {
                 <p>Register and discover NGOs aligned with your values</p>
               </div>
             </div>
-            
+
             <div className="growth-connector"></div>
-            
+
             <div className="growth-stage">
               <div className="stage-icon sprout-stage">🌱</div>
               <div className="stage-content">
@@ -175,9 +176,9 @@ const Home = () => {
                 <p>Donate, volunteer, or request support from NGOs</p>
               </div>
             </div>
-            
+
             <div className="growth-connector"></div>
-            
+
             <div className="growth-stage">
               <div className="stage-icon tree-stage">🌳</div>
               <div className="stage-content">
@@ -215,6 +216,13 @@ const Home = () => {
               <p>Monitor your contributions and community impact</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Nearby NGOs Section */}
+      <section className="nearby-section-wrapper">
+        <div className="container">
+          <NearbyNGOs radiusKm={300} />
         </div>
       </section>
 

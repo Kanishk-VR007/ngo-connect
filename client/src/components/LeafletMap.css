@@ -1,0 +1,253 @@
+/* ─── LeafletMap Component Styles ─────────────────────────────────────────── */
+
+.leaflet-map-wrapper {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* Fix Leaflet popup z-index */
+.leaflet-popup-content-wrapper {
+    border-radius: 12px !important;
+    padding: 0 !important;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+}
+
+.leaflet-popup-content {
+    margin: 0 !important;
+    width: 260px !important;
+}
+
+.leaflet-popup-tip-container {
+    margin-top: -1px;
+}
+
+/* ─── NGO Popup ─────────────────────────────────────────────────────────────── */
+.ngo-popup-content {
+    padding: 14px 16px 16px;
+    font-family: 'Inter', sans-serif;
+}
+
+.ngo-popup-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ngo-popup-header h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1e293b;
+    line-height: 1.3;
+}
+
+.popup-verified {
+    font-size: 10px;
+    background: #10b981;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 20px;
+    white-space: nowrap;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.ngo-popup-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.popup-category-badge {
+    font-size: 10px;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.ngo-popup-info {
+    margin-bottom: 8px;
+}
+
+.ngo-popup-info p {
+    margin: 3px 0;
+    font-size: 12px;
+    color: #475569;
+}
+
+.ngo-popup-desc {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.5;
+    margin: 0 0 12px;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 8px;
+}
+
+.popup-view-btn {
+    width: 100%;
+    padding: 8px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.popup-view-btn:hover {
+    opacity: 0.9;
+}
+
+/* ─── Search Center Popup ───────────────────────────────────────────────────── */
+.map-popup-center,
+.map-popup-user {
+    padding: 10px 14px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+}
+
+.map-popup-center p {
+    margin: 4px 0 0;
+    color: #475569;
+    font-size: 12px;
+}
+
+.map-popup-center small {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+/* ─── Custom Marker Icons ───────────────────────────────────────────────────── */
+.custom-ngo-marker {
+    background: transparent !important;
+    border: none !important;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35));
+    transition: transform 0.15s ease;
+}
+
+.custom-ngo-marker:hover {
+    transform: scale(1.15);
+    z-index: 1000 !important;
+}
+
+/* ─── User Location Pin ─────────────────────────────────────────────────────── */
+.user-location-pin {
+    position: relative;
+    width: 24px;
+    height: 24px;
+}
+
+.user-location-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 14px;
+    height: 14px;
+    background: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+    z-index: 2;
+}
+
+.user-location-pulse {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 36px;
+    height: 36px;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 50%;
+    animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes pulse-ring {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1.8);
+        opacity: 0;
+    }
+}
+
+/* ─── Search Center Pin ─────────────────────────────────────────────────────── */
+.search-center-pin {
+    font-size: 24px;
+    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* ─── Map Legend ────────────────────────────────────────────────────────────── */
+.map-legend {
+    position: absolute;
+    bottom: 48px;
+    left: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 140px;
+}
+
+.legend-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: #374151;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.legend-label {
+    font-size: 11px;
+    color: #4b5563;
+}
+
+/* ─── Click Hint ────────────────────────────────────────────────────────────── */
+.map-click-hint {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 41, 59, 0.85);
+    color: white;
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    z-index: 1000;
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+}

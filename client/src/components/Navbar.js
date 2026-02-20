@@ -12,10 +12,11 @@ const Navbar = () => {
         <Link to="/" className="navbar-brand">
           NGO Connect
         </Link>
-        
+
         <div className="navbar-menu">
           <Link to="/ngos" className="navbar-link">Find NGOs</Link>
-          
+          <Link to="/ngo-map" className="navbar-link">🗺️ Map Search</Link>
+
           {isAuthenticated ? (
             <>
               <Link to="/dashboard" className="navbar-link">Dashboard</Link>

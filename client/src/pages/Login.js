@@ -6,10 +6,12 @@ import './Auth.css';
 const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +31,7 @@ const Login = () => {
       await login(formData.email, formData.password);
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.error || 'Login failed');
+      setError(err.response?.data?.error || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -38,19 +40,25 @@ const Login = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <h2>Login to NGO Connect</h2>
-        <form onSubmit={handleSubmit}>
+        <div className="auth-header">
+          <h2>Welcome Back</h2>
+          <p className="auth-subtitle">Login to continue making a difference</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="auth-form">
           <div className="input-group">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="your.email@example.com"
               required
+              autoComplete="email"
             />
           </div>
-          
+
           <div className="input-group">
             <label>Password</label>
             <input
@@ -58,19 +66,32 @@ const Login = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
+              placeholder="Enter your password"
               required
+              autoComplete="current-password"
             />
           </div>
 
           {error && <div className="error-message">{error}</div>}
 
-          <button type="submit" className="btn btn-primary full-width" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+          <button
+            type="submit"
+            className="btn btn-primary full-width"
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="btn-loading">
+                <span className="spinner"></span>
+                Logging in...
+              </span>
+            ) : (
+              'Login'
+            )}
           </button>
         </form>
 
         <p className="auth-footer">
-          Don't have an account? <Link to="/register">Register here</Link>
+          Don't have an account? <Link to="/register" className="auth-link">Register here</Link>
         </p>
       </div>
     </div>

@@ -26,13 +26,23 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'ngo_member', 'admin'],
+    enum: ['user', 'ngo_founder', 'ngo_member', 'admin'],
     default: 'user'
+  },
+  ngoRole: {
+    type: String,
+    enum: ['founder', 'admin', 'member'],
+    default: null
   },
   ngoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'NGO',
     default: null
+  },
+  bio: {
+    type: String,
+    default: '',
+    maxlength: 500
   },
   location: {
     type: {
@@ -52,7 +62,11 @@ const userSchema = new mongoose.Schema({
   },
   profilePicture: {
     type: String,
-    default: ''
+    default: function () {
+      // Generate default avatar using DiceBear API
+      const name = this.name || 'User';
+      return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=3b82f6,8b5cf6,ec4899,f59e0b,10b981`;
+    }
   },
   isVerified: {
     type: Boolean,
@@ -70,16 +84,16 @@ const userSchema = new mongoose.Schema({
 userSchema.index({ 'location.coordinates': '2dsphere' });
 
 // Hash password before saving
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-  
+
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
 // Method to compare passwords
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
