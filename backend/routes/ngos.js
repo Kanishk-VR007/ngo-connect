@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ngoController = require('../controllers/ngoController');
+const ngoMemberController = require('../controllers/ngoMemberController');
 const { auth } = require('../middleware/auth');
 const authorize = require('../middleware/authorize');
 
@@ -24,20 +25,25 @@ router.get('/by-address', ngoController.getByAddress);
 // @access  Public
 router.get('/search', ngoController.searchNGOs);
 
+// @route   POST /api/ngos/founder/create
+// @desc    Create NGO as a registered founder (popup after registration)
+// @access  Private (ngo_founder only)
+router.post('/founder/create', auth, ngoController.createNGOByFounder);
+
 // @route   GET /api/ngos/:id
 // @desc    Get single NGO by ID
 // @access  Public
 router.get('/:id', ngoController.getNGOById);
 
 // @route   POST /api/ngos
-// @desc    Create new NGO
+// @desc    Create new NGO (admin)
 // @access  Private (Admin)
-router.post('/', auth, authorize('admin'), ngoController.createNGO);
+router.post('/', auth, authorize('admin', 'ngo_founder'), ngoController.createNGO);
 
 // @route   PUT /api/ngos/:id
 // @desc    Update NGO
 // @access  Private (NGO Member, Admin)
-router.put('/:id', auth, authorize('ngo_member', 'admin'), ngoController.updateNGO);
+router.put('/:id', auth, authorize('ngo_member', 'ngo_founder', 'admin'), ngoController.updateNGO);
 
 // @route   DELETE /api/ngos/:id
 // @desc    Delete NGO
@@ -46,27 +52,35 @@ router.delete('/:id', auth, authorize('admin'), ngoController.deleteNGO);
 
 // @route   POST /api/ngos/:id/apply
 // @desc    Apply to become NGO member
-// @access  Private
-router.post('/:id/apply', auth, ngoController.applyToNGO);
+// @access  Private (authenticated user)
+router.post('/:id/apply', auth, ngoMemberController.applyToNGO);
 
 // @route   GET /api/ngos/:id/applications
-// @desc    Get applications for NGO
-// @access  Private (NGO Member)
-router.get('/:id/applications', auth, authorize('ngo_member', 'admin'), ngoController.getApplications);
+// @desc    Get pending applications for NGO (founder view)
+// @access  Private (NGO Founder / Admin)
+router.get('/:id/applications', auth, ngoController.getApplications);
 
-// @route   PUT /api/ngos/:id/applications/:applicationId
-// @desc    Approve/Reject NGO application
-// @access  Private (NGO Member)
-router.put('/:id/applications/:applicationId', auth, authorize('ngo_member', 'admin'), ngoController.handleApplication);
+// @route   PUT /api/ngos/:id/applications/:userId/approve
+// @desc    Approve member application
+// @access  Private (ngo_founder / admin)
+router.put('/:id/applications/:userId/approve', auth, authorize('ngo_founder', 'admin'), ngoMemberController.approveApplication);
+
+// @route   PUT /api/ngos/:id/applications/:userId/reject
+// @desc    Reject member application
+// @access  Private (ngo_founder / admin)
+router.put('/:id/applications/:userId/reject', auth, authorize('ngo_founder', 'admin'), ngoMemberController.rejectApplication);
+
+// Legacy: Approve/Reject via applicationId (kept for backward compat)
+router.put('/:id/applications/:applicationId', auth, ngoController.handleApplication);
 
 // @route   POST /api/ngos/:id/activities
 // @desc    Add activity to NGO
 // @access  Private (NGO Member)
-router.post('/:id/activities', auth, authorize('ngo_member', 'admin'), ngoController.addActivity);
+router.post('/:id/activities', auth, authorize('ngo_member', 'ngo_founder', 'admin'), ngoController.addActivity);
 
 // @route   POST /api/ngos/:id/achievements
 // @desc    Add achievement to NGO
 // @access  Private (NGO Member)
-router.post('/:id/achievements', auth, authorize('ngo_member', 'admin'), ngoController.addAchievement);
+router.post('/:id/achievements', auth, authorize('ngo_member', 'ngo_founder', 'admin'), ngoController.addAchievement);
 
 module.exports = router;

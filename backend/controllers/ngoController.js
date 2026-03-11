@@ -6,7 +6,7 @@ const https = require('https');
 // Helper: Handle database errors
 const handleDBError = (error, res, operation = 'operation') => {
   console.error(`Database error during ${operation}:`, error.message);
-  
+
   if (error.message.includes('connect') || error.name === 'MongoServerError' || error.message.includes('ENOTFOUND')) {
     return res.status(503).json({
       success: false,
@@ -14,7 +14,7 @@ const handleDBError = (error, res, operation = 'operation') => {
       retryAfter: 30
     });
   }
-  
+
   return res.status(500).json({
     success: false,
     error: `Server error during ${operation}`
@@ -265,10 +265,18 @@ exports.getNGOById = async (req, res) => {
   }
 };
 
-// @desc    Create new NGO
+// @desc    Create new NGO (general endpoint)
 exports.createNGO = async (req, res) => {
   try {
     const ngo = await NGO.create(req.body);
+
+    // Update the founder's user document with NGO info
+    const founderId = req.body.founderId || req.user._id;
+    await User.findByIdAndUpdate(founderId, {
+      ngoId: ngo._id,
+      ngoRole: 'founder',
+      role: 'ngo_founder'
+    });
 
     res.status(201).json({
       success: true,
@@ -287,6 +295,127 @@ exports.createNGO = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Server error'
+    });
+  }
+};
+
+// @desc    Create NGO as a registered ngo_founder (separate dedicated endpoint)
+// @route   POST /api/ngos/founder/create
+// @access  Private (ngo_founder only)
+exports.createNGOByFounder = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    // Only ngo_founder role can create via this endpoint
+    if (req.user.role !== 'ngo_founder' && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        error: 'Only NGO founders can create an NGO via this endpoint'
+      });
+    }
+
+    // Check if user already has an NGO
+    if (req.user.ngoId) {
+      return res.status(400).json({
+        success: false,
+        error: 'You already have an NGO registered'
+      });
+    }
+
+    const {
+      name, description, registrationNumber, ngoType,
+      email, phone, website, foundedYear, teamSize,
+      serviceCategories, customServiceCategory,
+      location, socialMedia, logo
+    } = req.body;
+
+    // Validate required location fields
+    if (!location || !location.address || !location.city || !location.state) {
+      return res.status(400).json({
+        success: false,
+        error: 'Location details (address, city, state) are required'
+      });
+    }
+
+    // If coordinates not provided, geocode the address
+    let coords = location.coordinates;
+    if (!coords || !coords[0] || !coords[1]) {
+      try {
+        const addressStr = `${location.address}, ${location.city}, ${location.state}, India`;
+        const geo = await geocodeAddress(addressStr);
+        coords = [geo.lng, geo.lat];
+      } catch (geoErr) {
+        coords = [0, 0]; // fallback
+      }
+    }
+
+    const ngoData = {
+      name,
+      description,
+      registrationNumber,
+      founderId: userId,
+      ngoType: ngoType || 'Service',
+      email,
+      phone,
+      website: website || '',
+      foundedYear,
+      teamSize: teamSize || 1,
+      serviceCategories: serviceCategories || [],
+      customServiceCategory: customServiceCategory || '',
+      location: {
+        ...location,
+        coordinates: coords
+      },
+      socialMedia: socialMedia || {},
+      logo: logo || '',
+      members: [{
+        userId: userId,
+        role: 'founder',
+        permissions: {
+          canManageMembers: true,
+          canEditNGOInfo: true,
+          canCreateEvents: true,
+          canManageCollaborations: true
+        }
+      }]
+    };
+
+    const ngo = await NGO.create(ngoData);
+
+    // Update the founder's user document – founder credentials ALWAYS stay with the founder
+    await User.findByIdAndUpdate(userId, {
+      ngoId: ngo._id,
+      ngoRole: 'founder',
+      role: 'ngo_founder',
+      membershipStatus: 'active'
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'NGO created successfully! You are now the founder.',
+      data: ngo
+    });
+  } catch (error) {
+    console.error('Create NGO by founder error:', error);
+
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0];
+      return res.status(400).json({
+        success: false,
+        error: `An NGO with this ${field === 'registrationNumber' ? 'registration number' : field} already exists`
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        error: Object.values(error.errors).map(e => e.message).join(', ')
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      error: 'Server error while creating NGO'
     });
   }
 };
@@ -356,53 +485,52 @@ exports.deleteNGO = async (req, res) => {
   }
 };
 
-// @desc    Apply to become NGO member
+// @desc    Apply to become NGO member (stores in embedded NGO.memberApplications + updates User)
+// @route   POST /api/ngos/:id/apply
+// @access  Private (any authenticated user)
 exports.applyToNGO = async (req, res) => {
   try {
-    const { message, position, skills, availability } = req.body;
+    const { message } = req.body;
+    const userId = req.user._id;
 
-    // Check if NGO exists
+    // Cannot apply if already an NGO founder or member of another NGO
+    if (req.user.role === 'ngo_founder') {
+      return res.status(400).json({ success: false, error: 'NGO founders cannot apply to join another NGO' });
+    }
+    if (req.user.role === 'ngo_member' && req.user.ngoId && req.user.ngoId.toString() === req.params.id) {
+      return res.status(400).json({ success: false, error: 'You are already a member of this NGO' });
+    }
+
     const ngo = await NGO.findById(req.params.id);
     if (!ngo) {
-      return res.status(404).json({
-        success: false,
-        error: 'NGO not found'
-      });
+      return res.status(404).json({ success: false, error: 'NGO not found' });
     }
 
-    // Check if user already applied
-    const existingApplication = await NGOApplication.findOne({
-      applicantId: req.user.id,
-      ngoId: req.params.id,
-      status: 'pending'
-    });
-
-    if (existingApplication) {
-      return res.status(400).json({
-        success: false,
-        error: 'You have already applied to this NGO'
-      });
+    // Check duplicate pending application
+    const alreadyApplied = ngo.memberApplications.find(
+      a => a.userId.toString() === userId.toString() && a.status === 'pending'
+    );
+    if (alreadyApplied) {
+      return res.status(400).json({ success: false, error: 'You have already applied to this NGO' });
     }
 
-    const application = await NGOApplication.create({
-      applicantId: req.user.id,
-      ngoId: req.params.id,
-      message,
-      position,
-      skills,
-      availability
+    ngo.memberApplications.push({ userId, message: message || '', status: 'pending' });
+    await ngo.save();
+
+    // Update user membership status
+    await User.findByIdAndUpdate(userId, {
+      appliedNgoId: ngo._id,
+      membershipStatus: 'pending'
     });
 
     res.status(201).json({
       success: true,
-      data: application
+      message: 'Application submitted successfully! Waiting for NGO approval.',
+      data: { ngoId: ngo._id, ngoName: ngo.name, status: 'pending' }
     });
   } catch (error) {
     console.error('Apply to NGO error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 
@@ -442,73 +570,98 @@ exports.getApplications = async (req, res) => {
   }
 };
 
-// @desc    Handle application (approve/reject)
+// @desc    Handle application (approve/reject) using embedded memberApplications
+// @route   PUT /api/ngos/:id/applications/:applicationId
+// @access  Private (ngo_founder of this NGO, ngo_member with permission, or admin)
 exports.handleApplication = async (req, res) => {
   try {
-    const { status, reviewNotes } = req.body;
+    const { status } = req.body;
 
     if (!['approved', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid status'
-      });
+      return res.status(400).json({ success: false, error: 'Status must be approved or rejected' });
     }
 
-    // Verify user is member of this NGO
-    if (req.user.role !== 'admin' && (!req.user.ngoId || req.user.ngoId.toString() !== req.params.id)) {
-      return res.status(403).json({
-        success: false,
-        error: 'Not authorized'
-      });
+    const ngo = await NGO.findById(req.params.id);
+    if (!ngo) return res.status(404).json({ success: false, error: 'NGO not found' });
+
+    // Only the founder or admin can approve/reject
+    const isFounder = ngo.founderId.toString() === req.user._id.toString();
+    const isNGOMember = req.user.ngoId && req.user.ngoId.toString() === req.params.id;
+    if (!isFounder && !isNGOMember && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Not authorized to manage applications' });
     }
 
-    const application = await NGOApplication.findById(req.params.applicationId);
-
-    if (!application) {
-      return res.status(404).json({
-        success: false,
-        error: 'Application not found'
-      });
-    }
-
+    const application = ngo.memberApplications.id(req.params.applicationId);
+    if (!application) return res.status(404).json({ success: false, error: 'Application not found' });
     if (application.status !== 'pending') {
-      return res.status(400).json({
-        success: false,
-        error: 'Application has already been processed'
-      });
+      return res.status(400).json({ success: false, error: 'Application already processed' });
     }
 
     application.status = status;
-    application.reviewNotes = reviewNotes;
-    application.reviewedBy = req.user.id;
-    application.reviewedAt = Date.now();
-    await application.save();
+    await ngo.save();
 
-    // If approved, add user to NGO members and update user role
     if (status === 'approved') {
-      const ngo = await NGO.findById(req.params.id);
-      ngo.members.push({
-        userId: application.applicantId,
-        role: 'member'
-      });
-      await ngo.save();
+      // Add to members array – members share similar roles but founder ownership stays with founderId
+      const alreadyMember = ngo.members.find(m => m.userId.toString() === application.userId.toString());
+      if (!alreadyMember) {
+        ngo.members.push({
+          userId: application.userId,
+          role: 'member',
+          permissions: { canManageMembers: false, canEditNGOInfo: false, canCreateEvents: true, canManageCollaborations: false }
+        });
+        await ngo.save();
+      }
 
-      await User.findByIdAndUpdate(application.applicantId, {
+      // Update user – role becomes ngo_member; founder ownership (founderId in NGO) is NOT changed
+      await User.findByIdAndUpdate(application.userId, {
         role: 'ngo_member',
-        ngoId: req.params.id
+        ngoRole: 'member',
+        ngoId: ngo._id,
+        membershipStatus: 'active',
+        appliedNgoId: null
+      });
+    } else {
+      await User.findByIdAndUpdate(application.userId, {
+        membershipStatus: 'rejected',
+        appliedNgoId: null
       });
     }
 
     res.json({
       success: true,
-      data: application
+      message: `Application ${status}`,
+      data: { applicationId: application._id, status }
     });
   } catch (error) {
     console.error('Handle application error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+};
+
+// @desc    Get pending applications for an NGO (for founder dashboard)
+// @route   GET /api/ngos/:id/applications
+// @access  Private (ngo_founder or ngo_member of this NGO)
+exports.getApplications = async (req, res) => {
+  try {
+    const ngo = await NGO.findById(req.params.id)
+      .populate('memberApplications.userId', 'name email phone profilePicture bio');
+    if (!ngo) return res.status(404).json({ success: false, error: 'NGO not found' });
+
+    const isFounder = ngo.founderId.toString() === req.user._id.toString();
+    const isMember = req.user.ngoId && req.user.ngoId.toString() === req.params.id;
+    if (!isFounder && !isMember && req.user.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Not authorized' });
+    }
+
+    const { status } = req.query;
+    const applications = status
+      ? ngo.memberApplications.filter(a => a.status === status)
+      : ngo.memberApplications;
+
+    res.json({ success: true, count: applications.length, data: applications });
+  } catch (error) {
+    console.error('Get applications error:', error);
+    res.status(500).json({ success: false, error: 'Server error' });
   }
 };
 

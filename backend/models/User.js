@@ -31,13 +31,24 @@ const userSchema = new mongoose.Schema({
   },
   ngoRole: {
     type: String,
-    enum: ['founder', 'admin', 'member'],
+    enum: ['founder', 'admin', 'member', null],
     default: null
   },
   ngoId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'NGO',
     default: null
+  },
+  // For users applying to become NGO members
+  appliedNgoId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'NGO',
+    default: null
+  },
+  membershipStatus: {
+    type: String,
+    enum: ['none', 'pending', 'active', 'rejected'],
+    default: 'none'
   },
   bio: {
     type: String,
@@ -63,7 +74,6 @@ const userSchema = new mongoose.Schema({
   profilePicture: {
     type: String,
     default: function () {
-      // Generate default avatar using DiceBear API
       const name = this.name || 'User';
       return `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=3b82f6,8b5cf6,ec4899,f59e0b,10b981`;
     }
@@ -86,7 +96,6 @@ userSchema.index({ 'location.coordinates': '2dsphere' });
 // Hash password before saving
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
-
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();

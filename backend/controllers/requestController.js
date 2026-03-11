@@ -10,7 +10,7 @@ exports.getRequests = async (req, res) => {
 
     // If user is normal user, show only their requests
     if (req.user.role === 'user') {
-      query.requestedBy = req.user.id;
+      query.requestedBy = req.user._id;
     }
     // If user is NGO member, show requests for their NGO
     else if (req.user.role === 'ngo_member' && req.user.ngoId) {
@@ -63,7 +63,7 @@ exports.getRequestById = async (req, res) => {
     // Check authorization
     if (
       req.user.role === 'user' &&
-      request.requestedBy._id.toString() !== req.user.id
+      request.requestedBy._id.toString() !== req.user._id.toString()
     ) {
       return res.status(403).json({
         success: false,
@@ -109,7 +109,7 @@ exports.createRequest = async (req, res) => {
     }
 
     const request = await ServiceRequest.create({
-      requestedBy: req.user.id,
+      requestedBy: req.user._id,
       ngoId,
       serviceCategory,
       title,
@@ -149,7 +149,7 @@ exports.updateRequest = async (req, res) => {
     }
 
     // Only requester can update
-    if (request.requestedBy.toString() !== req.user.id) {
+    if (request.requestedBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         error: 'Not authorized'
@@ -250,7 +250,7 @@ exports.submitFeedback = async (req, res) => {
     }
 
     // Only requester can submit feedback
-    if (request.requestedBy.toString() !== req.user.id) {
+    if (request.requestedBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({
         success: false,
         error: 'Not authorized'

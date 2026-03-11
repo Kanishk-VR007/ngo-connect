@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const NGO = require('../models/NGO');
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -12,7 +13,7 @@ const generateToken = (id) => {
 // Helper to check database status and provide appropriate error
 const handleDBError = (error, res, operation = 'operation') => {
   console.error(`Database error during ${operation}:`, error.message);
-  
+
   if (error.message.includes('connect') || error.name === 'MongoServerError' || error.message.includes('ENOTFOUND')) {
     return res.status(503).json({
       success: false,
@@ -21,14 +22,14 @@ const handleDBError = (error, res, operation = 'operation') => {
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
-  
+
   if (error.name === 'ValidationError') {
     return res.status(400).json({
       success: false,
       error: 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ')
     });
   }
-  
+
   return res.status(500).json({
     success: false,
     error: `Server error during ${operation}`
@@ -46,11 +47,12 @@ exports.register = async (req, res) => {
       });
     }
 
-    const { name, email, password, phone, location, role, bio } = req.body;
+    const { name, email, password, phone, location, role, bio, ngoDetails } = req.body;
 
     // Validate role if provided
     const validRoles = ['user', 'ngo_founder', 'ngo_member', 'admin'];
-    if (role && !validRoles.includes(role)) {
+    const assignedRole = role || 'user';
+    if (!validRoles.includes(assignedRole)) {
       return res.status(400).json({
         success: false,
         error: 'Invalid role specified'
@@ -76,10 +78,39 @@ exports.register = async (req, res) => {
         password,
         phone,
         location,
-        role: role || 'user',
+        role: assignedRole,
         bio: bio || '',
-        profilePicture
+        profilePicture,
+        ngoRole: assignedRole === 'ngo_founder' ? 'founder' : null
       });
+
+      let ngo = null;
+
+      // If registering as NGO founder, create the NGO atomically
+      if (assignedRole === 'ngo_founder' && ngoDetails) {
+        try {
+          ngo = await NGO.create({
+            ...ngoDetails,
+            founderId: user._id,
+            members: [{ userId: user._id, role: 'founder', permissions: { canManageMembers: true, canEditNGOInfo: true, canCreateEvents: true, canManageCollaborations: true } }]
+          });
+
+          // Link NGO back to user
+          await User.findByIdAndUpdate(user._id, {
+            ngoId: ngo._id,
+            ngoRole: 'founder'
+          });
+          user.ngoId = ngo._id;
+        } catch (ngoError) {
+          // Rollback: delete user if NGO creation failed
+          await User.findByIdAndDelete(user._id);
+          console.error('NGO creation error during registration:', ngoError.message);
+          if (ngoError.code === 11000) {
+            return res.status(400).json({ success: false, error: 'NGO with this name, registration number, or email already exists' });
+          }
+          return res.status(400).json({ success: false, error: 'Failed to create NGO: ' + ngoError.message });
+        }
+      }
 
       const token = generateToken(user._id);
 
@@ -92,8 +123,11 @@ exports.register = async (req, res) => {
             name: user.name,
             email: user.email,
             role: user.role,
-            phone: user.phone
-          }
+            phone: user.phone,
+            ngoId: user.ngoId || null,
+            ngoRole: user.ngoRole || null
+          },
+          ngo: ngo ? { id: ngo._id, name: ngo.name } : null
         }
       });
     } catch (dbError) {
@@ -162,7 +196,10 @@ exports.login = async (req, res) => {
             email: user.email,
             role: user.role,
             phone: user.phone,
-            ngoId: user.ngoId
+            ngoId: user.ngoId || null,
+            ngoRole: user.ngoRole || null,
+            membershipStatus: user.membershipStatus || 'none',
+            profilePicture: user.profilePicture
           }
         }
       });
@@ -182,7 +219,7 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     try {
-      const user = await User.findById(req.user.id).populate('ngoId', 'name logo');
+      const user = await User.findById(req.user._id).populate('ngoId', 'name logo');
 
       res.json({
         success: true,
@@ -207,7 +244,7 @@ exports.updateProfile = async (req, res) => {
 
     try {
       const user = await User.findByIdAndUpdate(
-        req.user.id,
+        req.user._id,
         { name, phone, location, profilePicture },
         { new: true, runValidators: true }
       );
@@ -242,7 +279,7 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
 
     try {
-      const user = await User.findById(req.user.id).select('+password');
+      const user = await User.findById(req.user._id).select('+password');
 
       const isMatch = await user.comparePassword(currentPassword);
       if (!isMatch) {

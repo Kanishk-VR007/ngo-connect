@@ -4,7 +4,7 @@ const Chat = require('../models/Chat');
 exports.getChats = async (req, res) => {
   try {
     const chats = await Chat.find({
-      'participants.userId': req.user.id,
+      'participants.userId': req.user._id,
       isActive: true
     })
       .populate('participants.userId', 'name email profilePicture')
@@ -42,7 +42,7 @@ exports.getChatById = async (req, res) => {
 
     // Check if user is participant
     const isParticipant = chat.participants.some(
-      p => p.userId._id.toString() === req.user.id
+      p => p.userId._id.toString() === req.user._id.toString()
     );
 
     if (!isParticipant) {
@@ -73,7 +73,7 @@ exports.createChat = async (req, res) => {
     // Check if chat already exists
     let chat = await Chat.findOne({
       ngoId,
-      'participants.userId': { $all: [req.user.id, recipientId] }
+      'participants.userId': { $all: [req.user._id, recipientId] }
     });
 
     if (chat) {
@@ -86,7 +86,7 @@ exports.createChat = async (req, res) => {
     // Create new chat
     chat = await Chat.create({
       participants: [
-        { userId: req.user.id, role: 'user' },
+        { userId: req.user._id, role: 'user' },
         { userId: recipientId, role: 'ngo' }
       ],
       ngoId,
@@ -126,7 +126,7 @@ exports.sendMessage = async (req, res) => {
 
     // Check if user is participant
     const isParticipant = chat.participants.some(
-      p => p.userId.toString() === req.user.id
+      p => p.userId.toString() === req.user._id.toString()
     );
 
     if (!isParticipant) {
@@ -137,7 +137,7 @@ exports.sendMessage = async (req, res) => {
     }
 
     const message = {
-      senderId: req.user.id,
+      senderId: req.user._id,
       content,
       attachments,
       timestamp: Date.now()
@@ -183,7 +183,7 @@ exports.markAsRead = async (req, res) => {
 
     // Mark all messages not sent by current user as read
     chat.messages.forEach(message => {
-      if (message.senderId.toString() !== req.user.id) {
+      if (message.senderId.toString() !== req.user._id.toString()) {
         message.isRead = true;
       }
     });

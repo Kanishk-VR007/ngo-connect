@@ -134,11 +134,11 @@ exports.getDashboardAnalytics = async (req, res) => {
     if (req.user.role === 'user') {
       // User dashboard
       const myRequests = await ServiceRequest.countDocuments({
-        requestedBy: req.user.id
+        requestedBy: req.user._id
       });
 
       const myDonations = await Donation.aggregate([
-        { $match: { donorId: new mongoose.Types.ObjectId(req.user.id) } },
+        { $match: { donorId: new mongoose.Types.ObjectId(req.user._id) } },
         {
           $group: {
             _id: null,
@@ -149,7 +149,7 @@ exports.getDashboardAnalytics = async (req, res) => {
       ]);
 
       const recentRequests = await ServiceRequest.find({
-        requestedBy: req.user.id
+        requestedBy: req.user._id
       })
         .populate('ngoId', 'name logo')
         .sort({ createdAt: -1 })

@@ -16,6 +16,7 @@ import EventsList from './pages/EventsList';
 import RequestEvent from './pages/RequestEvent';
 import MyEventRequests from './pages/MyEventRequests';
 import NGOMapSearch from './pages/NGOMapSearch';
+import JoinNGO from './pages/JoinNGO';
 import PrivateRoute from './components/PrivateRoute';
 
 function App() {
@@ -56,6 +57,12 @@ function App() {
             <Route path="/profile" element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            } />
+
+            <Route path="/join-ngo" element={
+              <PrivateRoute>
+                <JoinNGO />
               </PrivateRoute>
             } />
 

@@ -4,7 +4,7 @@ const NGO = require('../models/NGO');
 // Helper to handle database errors
 const handleDBError = (error, res, operation = 'operation') => {
   console.error(`Database error during ${operation}:`, error.message);
-  
+
   if (error.message.includes('connect') || error.name === 'MongoServerError' || error.message.includes('ENOTFOUND')) {
     return res.status(503).json({
       success: false,
@@ -12,7 +12,7 @@ const handleDBError = (error, res, operation = 'operation') => {
       retryAfter: 30
     });
   }
-  
+
   return res.status(500).json({
     success: false,
     error: `Server error during ${operation}`
@@ -28,7 +28,7 @@ exports.getDonations = async (req, res) => {
 
     // If user is normal user, show only their donations
     if (req.user.role === 'user') {
-      query.donorId = req.user.id;
+      query.donorId = req.user._id;
     }
     // If user is NGO member, show donations for their NGO
     else if (req.user.role === 'ngo_member' && req.user.ngoId) {
@@ -93,7 +93,7 @@ exports.getDonationById = async (req, res) => {
       // Check authorization
       if (
         req.user.role === 'user' &&
-        donation.donorId._id.toString() !== req.user.id
+        donation.donorId._id.toString() !== req.user._id.toString()
       ) {
         return res.status(403).json({
           success: false,
@@ -145,7 +145,7 @@ exports.createDonation = async (req, res) => {
       const transactionId = `TXN${Date.now()}${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
       const donation = await Donation.create({
-        donorId: req.user.id,
+        donorId: req.user._id,
         ngoId,
         amount,
         currency,
@@ -199,7 +199,7 @@ exports.getDonationStats = async (req, res) => {
     }
 
     const stats = await Donation.aggregate([
-      { $match: { ngoId: require('mongoose').Types.ObjectId(ngoId), status: 'completed' } },
+      { $match: { ngoId: new (require('mongoose').Types.ObjectId)(ngoId), status: 'completed' } },
       {
         $group: {
           _id: null,
@@ -213,7 +213,7 @@ exports.getDonationStats = async (req, res) => {
     const monthlyStats = await Donation.aggregate([
       {
         $match: {
-          ngoId: require('mongoose').Types.ObjectId(ngoId),
+          ngoId: new (require('mongoose').Types.ObjectId)(ngoId),
           status: 'completed',
           createdAt: { $gte: new Date(new Date().setMonth(new Date().getMonth() - 12)) }
         }

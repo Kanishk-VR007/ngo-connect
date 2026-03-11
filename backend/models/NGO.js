@@ -63,6 +63,14 @@ const ngoSchema = new mongoose.Schema({
       type: String,
       required: true
     },
+    landmark: {
+      type: String,
+      default: ''
+    },
+    district: {
+      type: String,
+      default: ''
+    },
     city: {
       type: String,
       required: true
@@ -78,22 +86,13 @@ const ngoSchema = new mongoose.Schema({
     pincode: String
   },
   serviceCategories: [{
-    type: String,
-    enum: [
-      'Education',
-      'Healthcare',
-      'Food & Nutrition',
-      'Shelter',
-      'Women Empowerment',
-      'Child Welfare',
-      'Environmental',
-      'Disaster Relief',
-      'Elderly Care',
-      'Skill Development',
-      'Legal Aid',
-      'Other'
-    ]
+    type: String
   }],
+  // Custom/manually entered service theme if not in predefined list
+  customServiceCategory: {
+    type: String,
+    default: ''
+  },
   logo: {
     type: String,
     default: ''
@@ -140,6 +139,27 @@ const ngoSchema = new mongoose.Schema({
     joinedAt: {
       type: Date,
       default: Date.now
+    }
+  }],
+  // Pending member applications
+  memberApplications: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    message: {
+      type: String,
+      default: ''
+    },
+    appliedAt: {
+      type: Date,
+      default: Date.now
+    },
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
     }
   }],
   collaborations: [{
@@ -219,6 +239,6 @@ const ngoSchema = new mongoose.Schema({
 // Index for geospatial queries
 ngoSchema.index({ 'location.coordinates': '2dsphere' });
 ngoSchema.index({ serviceCategories: 1 });
-ngoSchema.index({ name: 'text', description: 'text' });
+ngoSchema.index({ name: 'text', description: 'text', 'location.city': 'text', 'location.state': 'text' });
 
 module.exports = mongoose.model('NGO', ngoSchema);
